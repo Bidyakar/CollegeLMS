@@ -24,10 +24,21 @@ $is_logged_in = isset($_SESSION['user_id']);
 
             <!-- Navigation Links -->
             <div class="hidden lg:flex items-center space-x-8">
-                <a href="<?php echo __DIR__ . '/../index.php'; ?>" class="text-gray-900 hover:text-red-600 font-medium transition-colors duration-200">Home</a>
+                <a href="/lms/index.php" class="text-gray-900 hover:text-red-600 font-medium transition-colors duration-200">Home</a>
                 <a href="#" class="text-gray-700 hover:text-red-600 font-medium transition-colors duration-200">Academics</a>
-                <a href="#" class="text-gray-700 hover:text-red-600 font-medium transition-colors duration-200">Faculty</a>
-                <a href="#" class="text-gray-700 hover:text-red-600 font-medium transition-colors duration-200">Our Campus</a>
+ <!-- Faculty Dropdown -->
+                <div class="relative group">
+                    <button class="text-gray-700 hover:text-red-600 font-medium transition-colors duration-200 flex items-center">
+                        Faculty
+                        <i class="fas fa-chevron-down ml-1 text-xs"></i>
+                    </button>
+                    <!-- Dropdown Menu -->
+                    <div class="absolute top-full left-0 mt-2 w-48 bg-white shadow-lg rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                        <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-red-600">BIM/BITM</a>
+                        <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-red-600">BBA</a>
+                        <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-red-600">BCA</a>
+                    </div>
+                </div>                <a href="#" class="text-gray-700 hover:text-red-600 font-medium transition-colors duration-200">Our Campus</a>
                 
                 <!-- Pages Dropdown -->
                 <div class="relative group">
@@ -37,7 +48,7 @@ $is_logged_in = isset($_SESSION['user_id']);
                     </button>
                     <!-- Dropdown Menu -->
                     <div class="absolute top-full left-0 mt-2 w-48 bg-white shadow-lg rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                        <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-red-600">About Us</a>
+                        <a href="/lms/about.php" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-red-600">About Us</a>
                         <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-red-600">Admissions</a>
                         <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-red-600">Programs</a>
                         <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-red-600">Research</a>
@@ -74,7 +85,7 @@ $is_logged_in = isset($_SESSION['user_id']);
     <!-- Mobile Menu -->
     <div class="lg:hidden hidden" id="mobile-menu">
         <div class="px-4 pt-2 pb-4 space-y-2 bg-white border-t">
-            <a href="index.php" class="block py-2 text-gray-900 hover:text-red-600 font-medium">Home</a>
+            <a href="/lms/index.php" class="block py-2 text-gray-900 hover:text-red-600 font-medium">Home</a>
             <a href="#" class="block py-2 text-gray-700 hover:text-red-600 font-medium">Academics</a>
             <?php if ($is_logged_in): ?>
                 <a href="<?php echo ($user_role === 'admin' ? 'admin/dashboard.php' : 'student/dashboard.php'); ?>" class="block py-2 text-gray-700 hover:text-red-600 font-medium">Dashboard</a>
