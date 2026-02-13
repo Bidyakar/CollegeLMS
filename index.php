@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KCMIT - Knowledge Center for Modern Information Technology</title>
+    <title>KCMIT Library - Knowledge Center for Modern Information Technology</title>
     <!-- Tailwind CSS -->
     <link href="assets/style.css" rel="stylesheet">
     <!-- Font Awesome for icons -->
@@ -40,7 +40,7 @@
                     <div class="lg:col-span-8">
                         <!-- Main Heading -->
                         <h1 class="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-8 leading-tight">
-                            Bridging Knowledge with<br>Real-World Impact.
+                            Connecting Knowledge with<br>Discovery and Learning.
                         </h1>
                         
                         <!-- Decorative Border Line -->
@@ -49,7 +49,7 @@
                             <div>
                                 <!-- Subheading -->
                                 <p class="text-lg md:text-xl text-white/95 leading-relaxed max-w-3xl">
-                                    Unlock your potential with world-class education, innovative research, and a vibrant community. At KCMIT University, we inspire leaders, foster innovation, and prepare you for success in a rapidly evolving world. Join us and shape your future today!
+                                    Discover endless possibilities with our extensive collection, innovative digital resources, and welcoming spaces. At KCMIT Library, we empower researchers, support lifelong learning, and provide the resources you need to thrive in an information-rich world. Visit us and expand your horizons today!
                                 </p>
                             </div>
                         </div>
@@ -74,27 +74,27 @@
     <section class="py-20 bg-white">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
-                <h2 class="text-4xl font-bold text-gray-900 mb-4">Why Choose KCMIT?</h2>
-                <p class="text-xl text-gray-600 max-w-3xl mx-auto">Discover what makes us a leading institution for higher education and research excellence.</p>
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">Why Choose KCMIT Library?</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">Explore what makes us a premier destination for research, study, and knowledge discovery.</p>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <!-- Feature 1 -->
                 <div class="text-center p-8 rounded-lg hover:shadow-xl transition-shadow duration-300">
                     <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <i class="fas fa-graduation-cap text-red-600 text-3xl"></i>
+                        <i class="fas fa-book text-red-600 text-3xl"></i>
                     </div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-4">World-Class Education</h3>
-                    <p class="text-gray-600 leading-relaxed">Access top-tier programs and learn from renowned faculty members dedicated to your success.</p>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">World-Class Collection</h3>
+                    <p class="text-gray-600 leading-relaxed">Access comprehensive collections and benefit from expert librarians committed to supporting your research and learning goals.</p>
                 </div>
                 
                 <!-- Feature 2 -->
                 <div class="text-center p-8 rounded-lg hover:shadow-xl transition-shadow duration-300">
                     <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <i class="fas fa-flask text-red-600 text-3xl"></i>
+                        <i class="fas fa-laptop text-red-600 text-3xl"></i>
                     </div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Innovative Research</h3>
-                    <p class="text-gray-600 leading-relaxed">Engage in cutting-edge research that shapes the future and makes a global impact.</p>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Digital Innovation</h3>
+                    <p class="text-gray-600 leading-relaxed">Explore state-of-the-art digital resources and technologies that enhance your research capabilities and information access.</p>
                 </div>
                 
                 <!-- Feature 3 -->
@@ -102,8 +102,8 @@
                     <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
                         <i class="fas fa-users text-red-600 text-3xl"></i>
                     </div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Vibrant Community</h3>
-                    <p class="text-gray-600 leading-relaxed">Join a diverse and supportive community of learners, leaders, and innovators.</p>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Welcoming Spaces</h3>
+                    <p class="text-gray-600 leading-relaxed">Experience comfortable study areas within a diverse and collaborative community of learners, scholars, and knowledge seekers.</p>
                 </div>
             </div>
         </div>
@@ -112,14 +112,14 @@
     <!-- Call to Action Section -->
     <section class="py-20 bg-gray-900">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 class="text-4xl font-bold text-white mb-6">Ready to Start Your Journey?</h2>
-            <p class="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">Take the first step towards a brighter future. Apply now and become part of our thriving community.</p>
+            <h2 class="text-4xl font-bold text-white mb-6">Ready to Begin Your Research Journey?</h2>
+            <p class="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">Take the first step towards knowledge discovery. Get your library card today and become part of our vibrant learning community.</p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
                 <a href="#" class="inline-block bg-red-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-red-700 transition-colors duration-200 text-lg">
-                    Apply Now
+                    Get Library Card
                 </a>
                 <a href="#" class="inline-block bg-white text-gray-900 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200 text-lg">
-                    Request Information
+                    Visit Us
                 </a>
             </div>
         </div>

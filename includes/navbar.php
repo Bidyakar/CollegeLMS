@@ -34,11 +34,12 @@ $is_logged_in = isset($_SESSION['user_id']);
                     </button>
                     <!-- Dropdown Menu -->
                     <div class="absolute top-full left-0 mt-2 w-48 bg-white shadow-lg rounded-md opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
-                        <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-red-600">BIM/BITM</a>
-                        <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-red-600">BBA</a>
-                        <a href="#" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-red-600">BCA</a>
+                        <a href="/lms/faculty/bim.php" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-red-600">BIM/BITM</a>
+                        <a href="/lms/faculty/bba.php" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-red-600">BBA</a>
+                        <a href="/lms/faculty/bca.php" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 hover:text-red-600">BCA</a>
                     </div>
-                </div>                <a href="#" class="text-gray-700 hover:text-red-600 font-medium transition-colors duration-200">Our Campus</a>
+                </div>                
+                <a href="https://kcmit.edu.np/" class="text-gray-700 hover:text-red-600 font-medium transition-colors duration-200">Our Campus</a>
                 
                 <!-- Pages Dropdown -->
                 <div class="relative group">
