@@ -16,6 +16,7 @@ $password = getEnvVar('DB_PASSWORD', ''); // Default: empty
 // Port handling (TiDB/Aiven often use non-standard ports)
 $port = getEnvVar('DB_PORT', '3306'); 
 
+try {
     // SSL handling (Required for most cloud databases)
     $ssl_ca = getEnvVar('DB_SSL_CA', ''); 
     
