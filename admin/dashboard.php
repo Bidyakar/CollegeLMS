@@ -8,26 +8,29 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 }
 
 try {
-    // Total Books from 'book' table
+    // Total Books Stock
     $total_books = $pdo->query("SELECT SUM(book_copies) FROM book")->fetchColumn() ?: 0;
     
-    // Total Members from 'member' table
-    $total_users = $pdo->query("SELECT COUNT(*) FROM member")->fetchColumn();
+    // Total Approved Students
+    $total_users = $pdo->query("SELECT COUNT(*) FROM student_login WHERE status = 'Approved'")->fetchColumn();
     
-    // Issued Books count from 'borrowdetails' table
+    // Total Pending Account Requests
+    $pending_stud_count = $pdo->query("SELECT COUNT(*) FROM student_login WHERE status = 'Pending'")->fetchColumn();
+    
+    // Currently Borrowed Books (Active)
     $issued_books = $pdo->query("SELECT COUNT(*) FROM borrowdetails WHERE borrow_status = 'pending'")->fetchColumn();
     
-    // Recent Activities (Join member, borrow, and borrowdetails)
-    $stmt = $pdo->query("SELECT bd.*, m.firstname, m.lastname, b.book_title, br.date_borrow 
+    // Recent Transactions
+    $stmt = $pdo->query("SELECT bd.*, s.firstname, s.lastname, b.book_title, br.date_borrow 
                          FROM borrowdetails bd
                          JOIN book b ON bd.book_id = b.book_id
                          JOIN borrow br ON bd.borrow_id = br.borrow_id
-                         JOIN member m ON br.member_id = m.member_id
+                         JOIN student_login s ON br.member_id = s.student_id
                          ORDER BY br.date_borrow DESC LIMIT 5");
     $recent_activities = $stmt->fetchAll();
 
 } catch (PDOException $e) {
-    die("Error: " . $e->getMessage());
+    die("Database Error: " . $e->getMessage());
 }
 ?>
 <!DOCTYPE html>
@@ -37,117 +40,126 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - KCMIT Library</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'uneza-red': '#DC2626',
-                        'uneza-dark': '#1F2937',
-                    }
-                }
-            }
-        }
-    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-    <style type="text/tailwindcss">
-        @layer base {
-            body { @apply bg-gray-50; font-family: 'Open Sans', sans-serif; }
-            h1, h2, h3 { font-family: 'Merriweather', serif; }
-        }
+    <style>
+        body { font-family: 'Open Sans', sans-serif; background: #f9f9fb; }
+        h1, h2, h3 { font-family: 'Merriweather', serif; }
+        .stat-card { transition: all 0.3s ease; }
+        .stat-card:hover { transform: translateY(-5px); }
     </style>
 </head>
-<body class="bg-gray-50 flex">
-    <!-- Sidebar -->
-    <aside class="w-64 bg-gray-900 min-h-screen text-white fixed lg:static hidden lg:block">
-        <div class="p-6">
-            <h2 class="text-xl font-bold text-red-500 mb-8 uppercase tracking-widest">KCMIT LMS</h2>
-            <nav class="space-y-4">
-                <a href="dashboard.php" class="flex items-center space-x-3 p-3 bg-red-600 rounded-lg">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="manage_books.php" class="flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg transition-all">
-                    <i class="fas fa-book"></i>
-                    <span>Manage Books</span>
-                </a>
-                <a href="manage_students.php" class="flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg transition-all">
-                    <i class="fas fa-users-graduate"></i>
-                    <span>Manage Students</span>
-                </a>
-            </nav>
-        </div>
-        <div class="absolute bottom-0 w-64 p-6">
-            <a href="../auth/logout.php" class="text-red-400 hover:text-white flex items-center space-x-2">
-                <i class="fas fa-sign-out-alt"></i>
-                <span>Logout</span>
-            </a>
-        </div>
-    </aside>
+<body class="flex">
 
-    <main class="flex-1 min-h-screen overflow-y-auto">
-        <header class="bg-white shadow-sm p-6 flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-gray-800">Library Control Panel</h1>
+    <!-- Sidebar -->
+    <?php $active_page = 'dashboard'; include 'includes/sidebar.php'; ?>
+
+    <main class="flex-1 p-8 pt-20 lg:pt-8">
+        <header class="bg-white border-b border-gray-100 p-6 flex justify-between items-center sticky top-0 z-10">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800">Library Control Panel</h1>
+                <p class="text-xs text-gray-500 mt-1">Manage books, students and daily operations</p>
+            </div>
             <div class="flex items-center space-x-4">
-               <span class="text-sm">Welcome, <strong><?php echo htmlspecialchars($_SESSION['name']); ?></strong></span>
+               <div class="text-right">
+                   <p class="text-sm font-bold text-gray-800"><?php echo htmlspecialchars($_SESSION['name']); ?></p>
+                   <p class="text-[10px] text-red-600 font-bold uppercase tracking-wider">Administrator</p>
+               </div>
+               <div class="h-10 w-10 bg-red-50 rounded-full flex items-center justify-center text-red-600 font-bold border border-red-100">
+                   <?php echo substr($_SESSION['name'], 0, 1); ?>
+               </div>
             </div>
         </header>
 
         <div class="p-8">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
-                    <div class="p-4 bg-blue-50 text-blue-600 rounded-xl"><i class="fas fa-book text-2xl"></i></div>
-                    <div><p class="text-gray-500 text-xs font-bold uppercase">Total Stock</p><h3 class="text-2xl font-bold"><?php echo $total_books; ?></h3></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 stat-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-blue-50 text-blue-600 rounded-xl"><i class="fas fa-book text-xl"></i></div>
+                        <span class="text-[10px] font-bold text-gray-400 uppercase">Books</span>
+                    </div>
+                    <h3 class="text-2xl font-black text-slate-800"><?php echo number_format($total_books); ?></h3>
+                    <p class="text-xs text-gray-500 mt-1">Total physical stock</p>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
-                    <div class="p-4 bg-green-50 text-green-600 rounded-xl"><i class="fas fa-users text-2xl"></i></div>
-                    <div><p class="text-gray-500 text-xs font-bold uppercase">Members</p><h3 class="text-2xl font-bold"><?php echo $total_users; ?></h3></div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 stat-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-green-50 text-green-600 rounded-xl"><i class="fas fa-users-graduate text-xl"></i></div>
+                        <span class="text-[10px] font-bold text-gray-400 uppercase">Members</span>
+                    </div>
+                    <h3 class="text-2xl font-black text-slate-800"><?php echo number_format($total_users); ?></h3>
+                    <p class="text-xs text-gray-500 mt-1">Active student accounts</p>
                 </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
-                    <div class="p-4 bg-red-50 text-red-600 rounded-xl"><i class="fas fa-exchange-alt text-2xl"></i></div>
-                    <div><p class="text-[10px] font-black uppercase text-gray-400">Issued Books</p><h3 class="text-2xl font-black"><?php echo $issued_books; ?></h3></div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 stat-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-red-50 text-red-600 rounded-xl"><i class="fas fa-exchange-alt text-xl"></i></div>
+                        <span class="text-[10px] font-bold text-gray-400 uppercase">Borrowed</span>
+                    </div>
+                    <h3 class="text-2xl font-black text-slate-800"><?php echo number_format($issued_books); ?></h3>
+                    <p class="text-xs text-gray-500 mt-1">Books currently issued</p>
                 </div>
-                <!-- New Stat Card for Pending Student Requests -->
-                <?php 
-                    $pending_stud_count = $pdo->query("SELECT COUNT(*) FROM student_login WHERE status = 'Pending'")->fetchColumn(); 
-                ?>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
-                    <div class="p-4 bg-yellow-50 text-yellow-600 rounded-xl"><i class="fas fa-user-clock text-2xl"></i></div>
-                    <div>
-                        <p class="text-[10px] font-black uppercase text-gray-400">Account Requests</p>
-                        <h3 class="text-2xl font-black"><?php echo $pending_stud_count; ?></h3>
-                        <a href="manage_students.php" class="text-[10px] font-bold text-yellow-600 hover:underline">Verify Now &rarr;</a>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-red-200 bg-red-50/10 stat-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-amber-50 text-amber-600 rounded-xl"><i class="fas fa-user-clock text-xl"></i></div>
+                        <span class="text-[10px] font-bold text-amber-600 uppercase">Pending</span>
+                    </div>
+                    <h3 class="text-2xl font-black text-slate-800"><?php echo $pending_stud_count; ?></h3>
+                    <div class="flex justify-between items-center mt-2">
+                        <p class="text-[10px] text-gray-500">Account requests</p>
+                        <a href="manage_students.php" class="text-[10px] font-bold text-red-600 hover:underline">Verify &rarr;</a>
                     </div>
                 </div>
             </div>
 
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="p-6 border-b border-gray-100"><h2 class="text-xl font-bold text-gray-800">Recent Transactions</h2></div>
-                <table class="w-full text-left">
-                    <thead class="bg-gray-50 font-bold text-xs text-gray-500 uppercase">
-                        <tr>
-                            <th class="p-6">Member</th>
-                            <th class="p-6">Book</th>
-                            <th class="p-6">Date</th>
-                            <th class="p-6 text-right">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 text-sm">
-                        <?php foreach($recent_activities as $activity): ?>
-                        <tr>
-                            <td class="p-6"><?php echo $activity['firstname'] . ' ' . $activity['lastname']; ?></td>
-                            <td class="p-6"><?php echo $activity['book_title']; ?></td>
-                            <td class="p-6 text-gray-500"><?php echo $activity['date_borrow']; ?></td>
-                            <td class="p-6 text-right">
-                                <span class="px-2 py-1 <?php echo $activity['borrow_status'] == 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'; ?> rounded-full text-[10px] font-bold uppercase">
-                                    <?php echo $activity['borrow_status']; ?>
-                                </span>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                <div class="p-6 border-b border-gray-100 flex justify-between items-center">
+                    <h2 class="text-lg font-black text-slate-800">Recent Activity Log</h2>
+                    <button class="text-xs font-bold text-gray-400 hover:text-slate-800">View All Logs</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-50 font-bold text-[10px] text-gray-400 uppercase tracking-widest">
+                            <tr>
+                                <th class="p-6">Member / Student</th>
+                                <th class="p-6">Book Issued</th>
+                                <th class="p-6 text-center">Issued Date</th>
+                                <th class="p-6 text-right">Progress</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 text-sm">
+                            <?php foreach($recent_activities as $activity): ?>
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="p-6">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="h-8 w-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-500 font-bold text-xs uppercase">
+                                            <?php echo substr($activity['firstname'], 0,1).substr($activity['lastname'], 0,1); ?>
+                                        </div>
+                                        <div>
+                                            <p class="font-bold text-slate-800"><?php echo $activity['firstname'] . ' ' . $activity['lastname']; ?></p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="p-6">
+                                    <p class="text-gray-900 font-medium"><?php echo $activity['book_title']; ?></p>
+                                </td>
+                                <td class="p-6 text-center text-gray-500">
+                                    <?php echo date('M d, Y', strtotime($activity['date_borrow'])); ?>
+                                </td>
+                                <td class="p-6 text-right">
+                                    <span class="px-3 py-1 <?php echo $activity['borrow_status'] == 'pending' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'; ?> rounded-full text-[9px] font-black uppercase tracking-widest">
+                                        <?php echo $activity['borrow_status']; ?>
+                                    </span>
+                                </td>
+                            </tr>
+                            <?php endforeach; ?>
+                            <?php if(empty($recent_activities)): ?>
+                            <tr><td colspan="4" class="p-12 text-center text-gray-400 italic">No recent activities found</td></tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </main>

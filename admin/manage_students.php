@@ -61,16 +61,9 @@ $approved_students = $pdo->query("SELECT * FROM student_login WHERE status = 'Ap
 </head>
 <body class="flex min-h-screen">
     <!-- Sidebar -->
-    <aside class="w-64 bg-gray-900 text-white p-6 hidden lg:block sticky top-0 h-screen">
-        <h2 class="text-xl font-bold text-red-500 mb-8 uppercase tracking-widest leading-tight">Admin<br>Navigation</h2>
-        <nav class="space-y-4">
-            <a href="dashboard.php" class="flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg transition-all"><i class="fas fa-home"></i><span>Dashboard</span></a>
-            <a href="manage_books.php" class="flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg transition-all"><i class="fas fa-book"></i><span>Manage Books</span></a>
-            <a href="manage_students.php" class="flex items-center space-x-3 p-3 bg-red-600 rounded-lg transition-all shadow-lg shadow-red-900/40 font-bold"><i class="fas fa-users-graduate"></i><span>Manage Students</span></a>
-        </nav>
-    </aside>
+    <?php $active_page = 'students'; include 'includes/sidebar.php'; ?>
 
-    <main class="flex-1 p-8">
+    <main class="flex-1 p-8 pt-20 lg:pt-8">
         <header class="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h1 class="text-3xl font-black text-gray-800 tracking-tight">Student Governance</h1>
             <div class="flex items-center space-x-4">

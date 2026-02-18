@@ -3,7 +3,7 @@ session_start();
 require_once '../config/db.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header("Location: ../auth/login.php");
+    header("Location: ../auth/staff-login.php");
     exit();
 }
 
@@ -12,34 +12,39 @@ $error = '';
 
 // Handle Book Issuance
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $user_id = $_POST['user_id'];
+    $student_id = $_POST['student_id'];
     $book_id = $_POST['book_id'];
     $due_date = $_POST['due_date'];
-    $issue_date = date('Y-m-d');
+    $issue_date = date('Y-m-d H:i:s');
 
     try {
-        // Start transaction
         $pdo->beginTransaction();
 
         // Check if book is available
-        $stmt = $pdo->prepare("SELECT available_copies FROM books WHERE id = ? FOR UPDATE");
+        $stmt = $pdo->prepare("SELECT book_copies FROM book WHERE book_id = ? FOR UPDATE");
         $stmt->execute([$book_id]);
         $book = $stmt->fetch();
 
-        if ($book && $book['available_copies'] > 0) {
-            // Insert into issued_books
-            $stmt = $pdo->prepare("INSERT INTO issued_books (user_id, book_id, issue_date, due_date) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$user_id, $book_id, $issue_date, $due_date]);
+        // Count how many are already issued and pending
+        $stmt_pending = $pdo->prepare("SELECT COUNT(*) FROM borrowdetails WHERE book_id = ? AND borrow_status = 'pending'");
+        $stmt_pending->execute([$book_id]);
+        $pending_count = $stmt_pending->fetchColumn();
 
-            // Update available copies
-            $stmt = $pdo->prepare("UPDATE books SET available_copies = available_copies - 1 WHERE id = ?");
-            $stmt->execute([$book_id]);
+        if ($book && ($book['book_copies'] - $pending_count) > 0) {
+            // 1. Insert into borrow table
+            $stmt = $pdo->prepare("INSERT INTO borrow (member_id, date_borrow, due_date) VALUES (?, ?, ?)");
+            $stmt->execute([$student_id, $issue_date, $due_date]);
+            $borrow_id = $pdo->lastInsertId();
+
+            // 2. Insert into borrowdetails table
+            $stmt = $pdo->prepare("INSERT INTO borrowdetails (book_id, borrow_id, borrow_status) VALUES (?, ?, 'pending')");
+            $stmt->execute([$book_id, $borrow_id]);
 
             $pdo->commit();
-            $message = "Book issued successfully!";
+            $message = "Book issued successfully to Student #" . $student_id;
         } else {
             $pdo->rollBack();
-            $error = "Book is not available for issuing.";
+            $error = "Book is currently out of stock.";
         }
     } catch (PDOException $e) {
         $pdo->rollBack();
@@ -47,10 +52,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch all students and available books
+// Fetch all approved students and books
 try {
-    $students = $pdo->query("SELECT id, name, student_id FROM users WHERE role = 'student' ORDER BY name ASC")->fetchAll();
-    $books = $pdo->query("SELECT id, title, available_copies FROM books WHERE available_copies > 0 ORDER BY title ASC")->fetchAll();
+    $students = $pdo->query("SELECT student_id, firstname, lastname FROM student_login WHERE status = 'Approved' ORDER BY firstname ASC")->fetchAll();
+    $books = $pdo->query("SELECT book_id, book_title, author, book_copies FROM book ORDER BY book_title ASC")->fetchAll();
 } catch (PDOException $e) {
     $error = "Error fetching data: " . $e->getMessage();
 }
@@ -61,97 +66,86 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Issue Books - Admin Dashboard</title>
-    <link href="../assets/style.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Open Sans', sans-serif; }
+        body { font-family: 'Open Sans', sans-serif; background: #f9f9fb; }
         h1, h2, h3 { font-family: 'Merriweather', serif; }
     </style>
 </head>
-<body class="bg-gray-50 flex">
+<body class="flex">
 
-    <aside class="w-64 bg-gray-900 min-h-screen text-white hidden lg:block">
-        <!-- Sidebar content same as dashboard -->
-        <div class="p-6">
-            <img src="../assets/images/logo.png" alt="Logo" class="h-10 mb-8 filter brightness-200">
-            <nav class="space-y-4">
-                <a href="dashboard.php" class="flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg transition-colors">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="manage_books.php" class="flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg transition-colors">
-                    <i class="fas fa-book"></i>
-                    <span>Manage Books</span>
-                </a>
-                <a href="issue_books.php" class="flex items-center space-x-3 p-3 bg-red-600 rounded-lg">
-                    <i class="fas fa-hand-holding"></i>
-                    <span>Issue Books</span>
-                </a>
-                <a href="return_books.php" class="flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg transition-colors">
-                    <i class="fas fa-undo"></i>
-                    <span>Return Books</span>
-                </a>
-                <a href="reports.php" class="flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg transition-colors">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Reports</span>
-                </a>
-            </nav>
-        </div>
-    </aside>
+    <!-- Sidebar -->
+    <?php $active_page = 'issue'; include 'includes/sidebar.php'; ?>
 
-    <main class="flex-1 min-h-screen">
-        <header class="bg-white shadow-sm p-4 flex justify-between items-center">
+    <main class="flex-1 min-h-screen pt-20 lg:pt-0">
+        <header class="bg-white border-b border-gray-100 p-6 flex justify-between items-center sticky top-0 z-10">
             <h1 class="text-2xl font-bold text-gray-800">Issue New Book</h1>
             <a href="../auth/logout.php" class="text-red-600 font-bold hover:underline">Logout</a>
         </header>
 
-        <div class="p-8 max-w-2xl mx-auto">
+        <div class="p-10 max-w-3xl mx-auto">
             <?php if ($message): ?>
-                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow-sm">
-                    <?php echo $message; ?>
+                <div class="bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 p-4 mb-6 rounded-r shadow-sm flex items-center italic">
+                    <i class="fas fa-check-circle mr-3"></i> <?php echo $message; ?>
                 </div>
             <?php endif; ?>
             <?php if ($error): ?>
-                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow-sm">
-                    <?php echo $error; ?>
+                <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r shadow-sm flex items-center italic">
+                    <i class="fas fa-exclamation-triangle mr-3"></i> <?php echo $error; ?>
                 </div>
             <?php endif; ?>
 
-            <div class="bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
-                <form action="" method="POST" class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Select Student</label>
-                        <select name="user_id" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition appearance-none bg-no-repeat bg-right pr-10" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E'); background-size: .65em auto;">
-                            <option value="">Choose a student...</option>
-                            <?php foreach($students as $student): ?>
-                                <option value="<?php echo $student['id']; ?>"><?php echo htmlspecialchars($student['name']); ?> (<?php echo htmlspecialchars($student['student_id']); ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
+            <div class="bg-white p-10 rounded-3xl shadow-xl border border-gray-100">
+                <form action="" method="POST" class="space-y-8">
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest pl-1">Student / Member</label>
+                            <select name="student_id" required class="w-full px-5 py-4 bg-gray-50 border-0 focus:ring-2 focus:ring-red-500 rounded-2xl outline-none font-bold text-slate-700 transition appearance-none">
+                                <option value="">Select Student</option>
+                                <?php foreach($students as $student): ?>
+                                    <option value="<?php echo $student['student_id']; ?>">
+                                        <?php echo htmlspecialchars($student['firstname'] . ' ' . $student['lastname']); ?> (#<?php echo $student['student_id']; ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest pl-1">Book to Issue</label>
+                            <select name="book_id" required class="w-full px-5 py-4 bg-gray-50 border-0 focus:ring-2 focus:ring-red-500 rounded-2xl outline-none font-bold text-slate-700 transition appearance-none">
+                                <option value="">Select Book</option>
+                                <?php foreach($books as $book): ?>
+                                    <option value="<?php echo $book['book_id']; ?>">
+                                        <?php echo htmlspecialchars($book['book_title']); ?> by <?php echo htmlspecialchars($book['author']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Select Book</label>
-                        <select name="book_id" required class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition appearance-none bg-no-repeat bg-right pr-10" style="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23666%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E'); background-size: .65em auto;">
-                            <option value="">Choose a book...</option>
-                            <?php foreach($books as $book): ?>
-                                <option value="<?php echo $book['id']; ?>"><?php echo htmlspecialchars($book['title']); ?> (<?php echo $book['available_copies']; ?> available)</option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Due Date</label>
+                        <label class="block text-[10px] font-black text-gray-400 mb-2 uppercase tracking-widest pl-1">Return Deadline (Due Date)</label>
                         <input type="date" name="due_date" required min="<?php echo date('Y-m-d'); ?>" 
                                value="<?php echo date('Y-m-d', strtotime('+14 days')); ?>"
-                               class="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 outline-none transition">
-                        <p class="text-xs text-gray-500 mt-2">Default is 14 days from today.</p>
+                               class="w-full px-5 py-4 bg-gray-50 border-0 focus:ring-2 focus:ring-red-500 rounded-2xl outline-none font-bold text-slate-700 transition">
+                        <p class="text-[10px] text-gray-400 mt-3 font-bold uppercase tracking-wide flex items-center">
+                            <i class="fas fa-info-circle mr-2 text-red-400"></i> Standard borrowing period is 14 days.
+                        </p>
                     </div>
 
-                    <button type="submit" class="w-full py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition shadow-xl transform hover:scale-[1.01] flex items-center justify-center">
-                        <i class="fas fa-paper-plane mr-2"></i> Issue Book
-                    </button>
+                    <div class="pt-4">
+                        <button type="submit" class="w-full py-5 bg-red-600 text-white rounded-2xl font-black text-lg hover:bg-red-700 transition shadow-2xl shadow-red-100 flex items-center justify-center group">
+                            <i class="fas fa-paper-plane mr-3 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"></i> 
+                            Confirm Issuance
+                        </button>
+                    </div>
                 </form>
+            </div>
+            
+            <div class="mt-8 text-center">
+                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Authorized Transaction Portal</p>
             </div>
         </div>
     </main>

@@ -21,18 +21,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $publisher_name = $_POST['publisher_name'];
     $copyright_year = $_POST['copyright_year'];
     $status = $_POST['status'];
+    $semester = $_POST['semester'] ?: null; // Handle optional semester
     $date_added = date('Y-m-d H:i:s');
 
     try {
         if ($book_id) {
             // Update
-            $stmt = $pdo->prepare("UPDATE book SET book_title=?, author=?, isbn=?, book_copies=?, book_pub=?, publisher_name=?, copyright_year=?, status=? WHERE book_id=?");
-            $stmt->execute([$book_title, $author, $isbn, $book_copies, $book_pub, $publisher_name, $copyright_year, $status, $book_id]);
+            $stmt = $pdo->prepare("UPDATE book SET book_title=?, author=?, isbn=?, book_copies=?, book_pub=?, publisher_name=?, copyright_year=?, status=?, semester=? WHERE book_id=?");
+            $stmt->execute([$book_title, $author, $isbn, $book_copies, $book_pub, $publisher_name, $copyright_year, $status, $semester, $book_id]);
             $message = "Book updated successfully!";
         } else {
             // Insert
-            $stmt = $pdo->prepare("INSERT INTO book (book_title, author, isbn, book_copies, book_pub, publisher_name, copyright_year, status, date_added) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$book_title, $author, $isbn, $book_copies, $book_pub, $publisher_name, $copyright_year, $status, $date_added]);
+            $stmt = $pdo->prepare("INSERT INTO book (book_title, author, isbn, book_copies, book_pub, publisher_name, copyright_year, status, semester, date_added) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$book_title, $author, $isbn, $book_copies, $book_pub, $publisher_name, $copyright_year, $status, $semester, $date_added]);
             $message = "Book added successfully!";
         }
     } catch (PDOException $e) {
@@ -79,17 +80,10 @@ if (isset($_GET['edit'])) {
     </style>
 </head>
 <body class="bg-gray-50 flex">
-    <aside class="w-64 bg-gray-900 min-h-screen text-white fixed lg:static hidden lg:block">
-        <div class="p-6">
-            <h2 class="text-xl font-bold text-red-500 mb-8">KCMIT LMS</h2>
-            <nav class="space-y-4">
-                <a href="dashboard.php" class="flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg"><i class="fas fa-home"></i><span>Dashboard</span></a>
-                <a href="manage_books.php" class="flex items-center space-x-3 p-3 bg-red-600 rounded-lg"><i class="fas fa-book"></i><span>Manage Books</span></a>
-            </nav>
-        </div>
-    </aside>
+    <!-- Sidebar -->
+    <?php $active_page = 'books'; include 'includes/sidebar.php'; ?>
 
-    <main class="flex-1 min-h-screen">
+    <main class="flex-1 min-h-screen pt-20 lg:pt-0">
         <header class="bg-white shadow-sm p-6 flex justify-between items-center">
             <h1 class="text-2xl font-bold text-gray-800">Manage Collection</h1>
             <a href="../auth/logout.php" class="text-red-600 font-bold">Logout</a>
@@ -114,21 +108,28 @@ if (isset($_GET['edit'])) {
                         <div class="grid grid-cols-2 gap-4">
                             <div><label class="text-xs font-bold uppercase text-gray-500">Copies</label>
                             <input type="number" name="book_copies" required value="<?php echo $edit_book['book_copies'] ?? '1'; ?>" class="w-full p-2 border rounded"></div>
-                            <div><label class="text-xs font-bold uppercase text-gray-500">Status</label>
-                            <select name="status" class="w-full p-2 border rounded">
-                                <option value="New" <?php echo ($edit_book['status']??'')=='New'?'selected':'';?>>New</option>
-                                <option value="Old" <?php echo ($edit_book['status']??'')=='Old'?'selected':'';?>>Old</option>
-                                <option value="Archive" <?php echo ($edit_book['status']??'')=='Archive'?'selected':'';?>>Archive</option>
-                                <option value="Damage" <?php echo ($edit_book['status']??'')=='Damage'?'selected':'';?>>Damage</option>
+                            <div><label class="text-xs font-bold uppercase text-gray-500">Target Semester</label>
+                            <select name="semester" class="w-full p-2 border rounded font-bold">
+                                <option value="">General/All</option>
+                                <?php for($i=1; $i<=8; $i++): ?>
+                                    <option value="<?php echo $i; ?>" <?php echo ($edit_book['semester']??'') == $i ? 'selected' : ''; ?>>Semester <?php echo $i; ?></option>
+                                <?php endfor; ?>
                             </select></div>
                         </div>
+                        <div><label class="text-xs font-bold uppercase text-gray-500">Status</label>
+                        <select name="status" class="w-full p-2 border rounded">
+                            <option value="New" <?php echo ($edit_book['status']??'')=='New'?'selected':'';?>>New</option>
+                            <option value="Old" <?php echo ($edit_book['status']??'')=='Old'?'selected':'';?>>Old</option>
+                            <option value="Archive" <?php echo ($edit_book['status']??'')=='Archive'?'selected':'';?>>Archive</option>
+                            <option value="Damage" <?php echo ($edit_book['status']??'')=='Damage'?'selected':'';?>>Damage</option>
+                        </select></div>
                         <div><label class="text-xs font-bold uppercase text-gray-500">Publisher</label>
                         <input type="text" name="book_pub" value="<?php echo htmlspecialchars($edit_book['book_pub'] ?? ''); ?>" class="w-full p-2 border rounded"></div>
                         <div><label class="text-xs font-bold uppercase text-gray-500">Publisher Name</label>
                         <input type="text" name="publisher_name" value="<?php echo htmlspecialchars($edit_book['publisher_name'] ?? ''); ?>" class="w-full p-2 border rounded"></div>
                         <div><label class="text-xs font-bold uppercase text-gray-500">Copyright Year</label>
                         <input type="number" name="copyright_year" value="<?php echo $edit_book['copyright_year'] ?? date('Y'); ?>" class="w-full p-2 border rounded"></div>
-                        <button type="submit" class="w-full py-3 bg-red-600 text-white rounded font-bold hover:bg-red-700"><?php echo $edit_book ? 'Update' : 'Add'; ?> Book</button>
+                        <button type="submit" class="w-full py-3 bg-red-600 text-white rounded font-bold hover:bg-red-700 shadow-lg shadow-red-200"><?php echo $edit_book ? 'Update' : 'Add'; ?> Book to Collection</button>
                     </form>
                 </div>
 
@@ -137,14 +138,23 @@ if (isset($_GET['edit'])) {
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                         <table class="w-full text-left">
                             <thead class="bg-gray-50 text-xs font-bold text-gray-500 uppercase">
-                                <tr><th class="p-6">Book Details</th><th class="p-6">Publisher</th><th class="p-6">Copies</th><th class="p-6 text-right">Actions</th></tr>
+                                <tr><th class="p-6">Book Details</th><th class="p-6">Curriculum</th><th class="p-6">Copies</th><th class="p-6 text-right">Actions</th></tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 text-sm">
                                 <?php foreach($books as $book): ?>
                                 <tr>
-                                    <td class="p-6"><strong><?php echo $book['book_title']; ?></strong><br><span class="text-gray-500 text-xs"><?php echo $book['author']; ?></span></td>
-                                    <td class="p-6"><?php echo $book['book_pub']; ?> (<?php echo $book['copyright_year']; ?>)</td>
-                                    <td class="p-6 font-bold"><?php echo $book['book_copies']; ?></td>
+                                    <td class="p-6">
+                                        <p class="font-bold text-slate-800"><?php echo htmlspecialchars($book['book_title']); ?></p>
+                                        <p class="text-gray-500 text-[10px] font-bold uppercase tracking-widest"><?php echo htmlspecialchars($book['author']); ?></p>
+                                    </td>
+                                    <td class="p-6">
+                                        <?php if($book['semester']): ?>
+                                            <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100 italic">SEM <?php echo $book['semester']; ?></span>
+                                        <?php else: ?>
+                                            <span class="bg-slate-50 text-slate-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-slate-100">General</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="p-6 font-black text-slate-600"><?php echo $book['book_copies']; ?></td>
                                     <td class="p-6 text-right space-x-4">
                                         <a href="manage_books.php?edit=<?php echo $book['book_id']; ?>" class="text-blue-600"><i class="fas fa-edit"></i></a>
                                         <a href="manage_books.php?delete=<?php echo $book['book_id']; ?>" onclick="return confirm('Delete?')" class="text-red-600"><i class="fas fa-trash"></i></a>

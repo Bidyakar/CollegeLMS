@@ -13,14 +13,14 @@ $is_logged_in = isset($_SESSION['user_id']);
         <div class="flex items-center justify-between h-20">
             
             <!-- Logo Section -->
-            <div class="flex items-center space-x-3">
-                <div class=" flex items-center justify-center">
-                    <div class="text-white font-bold text-xs text-center leading-tight">
-                        <img src="/lms/assets/images/logo.png" alt="College Library" >
-                    </div>
+            <div>
+                <div class="text-white font-bold text-xs text-center leading-tight">
+                    <img src="/lms/assets/images/logo.png" alt="College Library" >
                 </div>
-                
             </div>
+
+                
+          
 
             <!-- Navigation Links -->
             <div class="hidden lg:flex items-center space-x-8">

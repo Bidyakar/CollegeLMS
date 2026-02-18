@@ -3,7 +3,7 @@ session_start();
 require_once '../config/db.php';
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    header("Location: ../auth/login.php");
+    header("Location: ../auth/staff-login.php");
     exit();
 }
 
@@ -12,48 +12,33 @@ $error = '';
 
 // Handle Book Return
 if (isset($_GET['return_id'])) {
-    $issued_id = $_GET['return_id'];
-    $return_date = date('Y-m-d');
+    $bd_id = $_GET['return_id']; // borrow_details_id
+    $return_date = date('Y-m-d H:i:s');
 
     try {
         $pdo->beginTransaction();
 
-        // Get book_id
-        $stmt = $pdo->prepare("SELECT book_id FROM issued_books WHERE id = ?");
-        $stmt->execute([$issued_id]);
-        $issued_record = $stmt->fetch();
+        // Update borrowdetails
+        $stmt = $pdo->prepare("UPDATE borrowdetails SET borrow_status = 'returned', date_return = ? WHERE borrow_details_id = ?");
+        $stmt->execute([$return_date, $bd_id]);
 
-        if ($issued_record) {
-            $book_id = $issued_record['book_id'];
-
-            // Update return_date
-            $stmt = $pdo->prepare("UPDATE issued_books SET return_date = ? WHERE id = ?");
-            $stmt->execute([$return_date, $issued_id]);
-
-            // Increment available_copies
-            $stmt = $pdo->prepare("UPDATE books SET available_copies = available_copies + 1 WHERE id = ?");
-            $stmt->execute([$book_id]);
-
-            $pdo->commit();
-            $message = "Book returned successfully!";
-        } else {
-            $pdo->rollBack();
-            $error = "Issued record not found.";
-        }
+        $pdo->commit();
+        $message = "Book marked as returned successfully!";
     } catch (PDOException $e) {
         $pdo->rollBack();
         $error = "Error: " . $e->getMessage();
     }
 }
 
-// Fetch all currently issued books
+// Fetch all currently issued books (pending)
 try {
-    $stmt = $pdo->query("SELECT ib.*, u.name as user_name, u.student_id, b.title as book_title 
-                         FROM issued_books ib 
-                         JOIN users u ON ib.user_id = u.id 
-                         JOIN books b ON ib.book_id = b.id 
-                         WHERE ib.return_date IS NULL 
-                         ORDER BY ib.due_date ASC");
+    $stmt = $pdo->query("SELECT bd.*, s.firstname, s.lastname, s.student_id as stud_custom_id, b.book_title, br.due_date 
+                         FROM borrowdetails bd
+                         JOIN book b ON bd.book_id = b.book_id
+                         JOIN borrow br ON bd.borrow_id = br.borrow_id
+                         JOIN student_login s ON br.member_id = s.student_id
+                         WHERE bd.borrow_status = 'pending'
+                         ORDER BY br.due_date ASC");
     $issued_books = $stmt->fetchAll();
 } catch (PDOException $e) {
     $error = "Error fetching data: " . $e->getMessage();
@@ -65,116 +50,105 @@ try {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Return Books - Admin Dashboard</title>
-    <link href="../assets/style.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Open Sans', sans-serif; }
+        body { font-family: 'Open Sans', sans-serif; background: #f9f9fb; }
         h1, h2, h3 { font-family: 'Merriweather', serif; }
     </style>
 </head>
-<body class="bg-gray-50 flex">
+<body class="flex">
 
-    <aside class="w-64 bg-gray-900 min-h-screen text-white hidden lg:block">
-        <div class="p-6">
-            <img src="../assets/images/logo.png" alt="Logo" class="h-10 mb-8 filter brightness-200">
-            <nav class="space-y-4">
-                <a href="dashboard.php" class="flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg transition-colors">
-                    <i class="fas fa-home"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="manage_books.php" class="flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg transition-colors">
-                    <i class="fas fa-book"></i>
-                    <span>Manage Books</span>
-                </a>
-                <a href="issue_books.php" class="flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg transition-colors">
-                    <i class="fas fa-hand-holding"></i>
-                    <span>Issue Books</span>
-                </a>
-                <a href="return_books.php" class="flex items-center space-x-3 p-3 bg-red-600 rounded-lg">
-                    <i class="fas fa-undo"></i>
-                    <span>Return Books</span>
-                </a>
-                <a href="reports.php" class="flex items-center space-x-3 p-3 hover:bg-gray-800 rounded-lg transition-colors">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Reports</span>
-                </a>
-            </nav>
-        </div>
-    </aside>
+    <!-- Sidebar -->
+    <?php $active_page = 'return'; include 'includes/sidebar.php'; ?>
 
-    <main class="flex-1 min-h-screen">
-        <header class="bg-white shadow-sm p-4 flex justify-between items-center">
-            <h1 class="text-2xl font-bold text-gray-800">Return Process</h1>
+    <main class="flex-1 min-h-screen pt-20 lg:pt-0">
+        <header class="bg-white border-b border-gray-100 p-6 flex justify-between items-center sticky top-0 z-10">
+            <h1 class="text-2xl font-bold text-gray-800">Return Processing</h1>
             <a href="../auth/logout.php" class="text-red-600 font-bold hover:underline">Logout</a>
         </header>
 
         <div class="p-8">
             <?php if ($message): ?>
-                <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded shadow-sm">
-                    <?php echo $message; ?>
+                <div class="bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 p-4 mb-6 rounded shadow-sm flex items-center">
+                    <i class="fas fa-check-circle mr-3"></i> <?php echo $message; ?>
                 </div>
             <?php endif; ?>
             <?php if ($error): ?>
-                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow-sm">
-                    <?php echo $error; ?>
+                <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded shadow-sm flex items-center">
+                    <i class="fas fa-exclamation-triangle mr-3"></i> <?php echo $error; ?>
                 </div>
             <?php endif; ?>
 
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="p-6 border-b border-gray-100 flex justify-between items-center">
-                    <h2 class="text-xl font-bold text-gray-800">Pending Returns</h2>
-                    <div class="relative">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                        <input type="text" placeholder="Search student or book..." class="pl-10 pr-4 py-2 border border-gray-200 rounded-lg outline-none focus:ring-2 focus:ring-red-500 transition">
+            <div class="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-8 border-b border-gray-100 flex justify-between items-center bg-white">
+                    <div>
+                        <h2 class="text-xl font-black text-slate-800">Pending Returns</h2>
+                        <p class="text-xs text-gray-400 mt-1 font-bold">Books currently out with students</p>
                     </div>
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
-                        <thead class="bg-gray-50 text-gray-500 text-xs font-bold uppercase">
+                        <thead class="bg-gray-50 text-gray-400 text-[10px] font-black uppercase tracking-widest">
                             <tr>
-                                <th class="px-6 py-4">Student</th>
-                                <th class="px-6 py-4">Book Title</th>
-                                <th class="px-6 py-4">Issue Date</th>
-                                <th class="px-6 py-4">Due Date</th>
-                                <th class="px-6 py-4">Status</th>
-                                <th class="px-6 py-4 text-right">Action</th>
+                                <th class="px-8 py-5">Student</th>
+                                <th class="px-8 py-5">Book Title</th>
+                                <th class="px-8 py-5">Due Date</th>
+                                <th class="px-8 py-5 text-center">Status</th>
+                                <th class="px-8 py-5 text-right">Action</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
                             <?php foreach($issued_books as $issued): 
-                                $is_overdue = strtotime($issued['due_date']) < time();
+                                $due = strtotime($issued['due_date']);
+                                $is_overdue = $due < time();
+                                $fine = 0;
+                                if($is_overdue) {
+                                    $days = ceil((time() - $due) / 86400);
+                                    $fine = $days * 10;
+                                }
                             ?>
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4">
-                                    <p class="font-bold text-gray-900"><?php echo htmlspecialchars($issued['user_name']); ?></p>
-                                    <p class="text-xs text-gray-500"><?php echo htmlspecialchars($issued['student_id']); ?></p>
+                            <tr class="hover:bg-gray-50 transition-colors group">
+                                <td class="px-8 py-6">
+                                    <p class="font-black text-slate-800"><?php echo htmlspecialchars($issued['firstname'] . ' ' . $issued['lastname']); ?></p>
+                                    <p class="text-[10px] text-gray-400 font-bold">ID: #<?php echo $issued['student_id']; ?></p>
                                 </td>
-                                <td class="px-6 py-4"><?php echo htmlspecialchars($issued['book_title']); ?></td>
-                                <td class="px-6 py-4"><?php echo date('M d, Y', strtotime($issued['issue_date'])); ?></td>
-                                <td class="px-6 py-4"><?php echo date('M d, Y', strtotime($issued['due_date'])); ?></td>
-                                <td class="px-6 py-4">
+                                <td class="px-8 py-6">
+                                    <p class="text-sm font-bold text-slate-700"><?php echo htmlspecialchars($issued['book_title']); ?></p>
+                                </td>
+                                <td class="px-8 py-6">
+                                    <div class="flex flex-col">
+                                        <span class="text-sm font-bold <?php echo $is_overdue ? 'text-red-600' : 'text-slate-600'; ?>">
+                                            <?php echo date('M d, Y', $due); ?>
+                                        </span>
+                                        <?php if($is_overdue): ?>
+                                            <span class="text-[10px] font-black text-red-500 uppercase tracking-tighter">Fine: Rs. <?php echo $fine; ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                                <td class="px-8 py-6 text-center">
                                     <?php if ($is_overdue): ?>
-                                        <span class="px-2 py-1 bg-red-100 text-red-700 rounded-full text-[10px] font-bold uppercase tracking-wider">Overdue</span>
+                                        <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-[9px] font-black uppercase tracking-widest border border-red-200">Overdue</span>
                                     <?php else: ?>
-                                        <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-[10px] font-bold uppercase tracking-wider">Pending</span>
+                                        <span class="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[9px] font-black uppercase tracking-widest border border-amber-200">Pending</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="px-6 py-4 text-right">
-                                    <a href="return_books.php?return_id=<?php echo $issued['id']; ?>" 
-                                       onclick="return confirm('Mark this book as returned?')"
-                                       class="inline-block px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-bold hover:bg-green-700 transition shadow-md">
-                                        Mark Returned
+                                <td class="px-8 py-6 text-right">
+                                    <a href="return_books.php?return_id=<?php echo $issued['borrow_details_id']; ?>" 
+                                       onclick="return confirm('Confirm book return?')"
+                                       class="inline-block px-6 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition shadow-lg shadow-slate-200 hover:shadow-red-200">
+                                        Process Return
                                     </a>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
                             <?php if(empty($issued_books)): ?>
                             <tr>
-                                <td colspan="6" class="px-6 py-12 text-center text-gray-400">
-                                    <i class="fas fa-check-double text-4xl mb-4 block"></i>
-                                    No books currently issued.
+                                <td colspan="5" class="px-8 py-20 text-center text-gray-400">
+                                    <i class="fas fa-check-circle text-5xl mb-4 block text-emerald-100"></i>
+                                    <p class="text-sm font-bold uppercase tracking-widest">No books currently pending return</p>
                                 </td>
                             </tr>
                             <?php endif; ?>
