@@ -2,159 +2,150 @@
 session_start();
 require_once '../config/db.php';
 
-// Check if user is logged in and is a student
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
-    header("Location: ../auth/login.php");
+    header("Location: ../auth/student-login.php");
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
+$student_id = $_SESSION['user_id'];
+$program = $_SESSION['program'] ?? 'General';
+$semester = $_SESSION['semester'] ?? 1;
 
-// Fetch student stats
 try {
-    // Books currently borrowed
-    $stmt = $pdo->prepare("SELECT ib.*, b.title, b.author, b.isbn 
-                           FROM issued_books ib 
-                           JOIN books b ON ib.book_id = b.id 
-                           WHERE ib.user_id = ? AND ib.return_date IS NULL");
-    $stmt->execute([$user_id]);
+    // 1. Fetch Currently Borrowed Books
+    // Note: Assuming student_id in student_login maps to member_id in borrow table for continuity
+    $stmt = $pdo->prepare("SELECT bd.*, b.book_title, br.due_date 
+                           FROM borrowdetails bd
+                           JOIN book b ON bd.book_id = b.book_id
+                           JOIN borrow br ON bd.borrow_id = br.borrow_id
+                           WHERE br.member_id = ? AND bd.borrow_status = 'pending'");
+    $stmt->execute([$student_id]);
     $borrowed_books = $stmt->fetchAll();
 
-    // Past borrowings
-    $stmt = $pdo->prepare("SELECT ib.*, b.title 
-                           FROM issued_books ib 
-                           JOIN books b ON ib.book_id = b.id 
-                           WHERE ib.user_id = ? AND ib.return_date IS NOT NULL 
-                           ORDER BY ib.return_date DESC LIMIT 5");
-    $stmt->execute([$user_id]);
-    $history = $stmt->fetchAll();
+    // 2. Fetch Books available for my Semester & Faculty
+    // Note: This assumes you added 'program' and 'semester' columns to your 'book' table or mapped category_id
+    $stmt = $pdo->prepare("SELECT * FROM book WHERE (category_id IN (SELECT category_id FROM category WHERE classname = ?)) OR (copyright_year >= 2020) LIMIT 4");
+    $stmt->execute([$program]);
+    $suggested_books = $stmt->fetchAll();
 
-    $total_borrowed = count($borrowed_books);
+    // 3. Simple Fine Logic (Example: Rs 10 per day overdue)
+    $total_fine = 0;
+    foreach($borrowed_books as $book) {
+        $due = strtotime($book['due_date']);
+        $today = time();
+        if($today > $due) {
+            $days = ceil(($today - $due) / 86400);
+            $total_fine += ($days * 10);
+        }
+    }
 
-} catch (PDOException $e) {
-    echo "Error: " . $e->getMessage();
-}
+} catch (PDOException $e) { $error = $e->getMessage(); }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Dashboard - KCMIT Library</title>
-    <link href="../assets/style.css" rel="stylesheet">
+    <title>Dashboard - KCMIT Student Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Open Sans', sans-serif; }
-        h1, h2, h3 { font-family: 'Merriweather', serif; }
+    <style type="text/tailwindcss">
+        @layer base { body { @apply bg-white; font-family: 'Open Sans', sans-serif; } h1, h2 { font-family: 'Merriweather', serif; } }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="bg-gray-50 flex">
 
-    <?php include '../includes/navbar.php'; ?>
+    <!-- Sidebar -->
+    <aside class="w-64 bg-blue-900 min-h-screen text-white p-6 hidden lg:block">
+        <div class="mb-12">
+            <h2 class="text-2xl font-black italic">KCMIT <span class="text-blue-400"><?php echo $program; ?></span></h2>
+            <p class="text-[10px] uppercase tracking-widest opacity-50 mt-1 font-bold">Library Student Hub</p>
+        </div>
+        <nav class="space-y-4">
+            <a href="dashboard.php" class="flex items-center space-x-3 p-3 bg-blue-700/50 rounded-xl border-l-4 border-blue-400">
+                <i class="fas fa-th-large"></i><span>Dashboard</span>
+            </a>
+            <a href="#" class="flex items-center space-x-3 p-3 hover:bg-blue-800 rounded-xl transition-all">
+                <i class="fas fa-search"></i><span>Browse Books</span>
+            </a>
+            <a href="#" class="flex items-center space-x-3 p-3 hover:bg-blue-800 rounded-xl transition-all">
+                <i class="fas fa-history"></i><span>Account History</span>
+            </a>
+        </nav>
+        <div class="mt-20 pt-10 border-t border-blue-800">
+            <a href="../auth/logout.php" class="flex items-center space-x-3 p-3 text-blue-300 hover:text-white transition-all font-bold italic">
+                <i class="fas fa-sign-out-alt"></i><span>Logout</span>
+            </a>
+        </div>
+    </aside>
 
-    <div class="pt-24 pb-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- Welcome Header -->
-            <div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 mb-8 flex flex-col md:flex-row justify-between items-center bg-cover bg-right" style="background-image: url('../assets/images/pattern.svg');">
+    <main class="flex-1 p-8">
+        <div class="max-w-7xl mx-auto">
+            <header class="flex justify-between items-center mb-10">
                 <div>
-                    <h1 class="text-3xl font-bold text-gray-800">Welcome back, <?php echo htmlspecialchars($_SESSION['name']); ?>!</h1>
-                    <p class="text-gray-500 mt-2">Manage your borrowed books and explore new resources.</p>
+                    <h1 class="text-3xl font-black text-gray-900">Welcome, <?php echo explode(' ', $_SESSION['name'])[0]; ?>!</h1>
+                    <p class="text-gray-400 font-bold text-sm"><?php echo $program; ?> Portal • Semester <?php echo $semester; ?></p>
                 </div>
-                <div class="mt-6 md:mt-0 flex space-x-4">
-                    <div class="text-center">
-                        <p class="text-3xl font-bold text-red-600"><?php echo $total_borrowed; ?></p>
-                        <p class="text-xs font-bold text-gray-500 uppercase">Current Books</p>
-                    </div>
-                    <div class="w-px h-12 bg-gray-200"></div>
-                     <div class="text-center">
-                        <p class="text-3xl font-bold text-gray-800">0</p>
-                        <p class="text-xs font-bold text-gray-500 uppercase">Overdue</p>
-                    </div>
+                <div class="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm border border-gray-100 text-blue-600">
+                    <i class="fas fa-bell"></i>
+                </div>
+            </header>
+
+            <div class="grid lg:grid-cols-3 gap-8 mb-10">
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                    <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-6"><i class="fas fa-book-open"></i></div>
+                    <p class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Active Borrows</p>
+                    <h3 class="text-3xl font-black mt-2"><?php echo count($borrowed_books); ?> <span class="text-sm font-normal text-gray-400">Books</span></h3>
+                </div>
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                    <div class="w-12 h-12 bg-red-50 text-red-600 rounded-xl flex items-center justify-center mb-6"><i class="fas fa-clock"></i></div>
+                    <p class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Books Not Returned</p>
+                    <h3 class="text-3xl font-black mt-2"><?php echo count(array_filter($borrowed_books, function($b){ return strtotime($b['due_date']) < time(); })); ?></h3>
+                </div>
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                    <div class="w-12 h-12 bg-green-50 text-green-600 rounded-xl flex items-center justify-center mb-6"><i class="fas fa-wallet"></i></div>
+                    <p class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Outstanding Fine</p>
+                    <h3 class="text-3xl font-black mt-2">Rs. <?php echo $total_fine; ?></h3>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <!-- Current Borrowed Books -->
-                <div class="lg:col-span-8">
-                    <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center">
-                        <i class="fas fa-book-reader mr-3 text-red-600"></i>
-                        Currently Borrowed
-                    </h2>
-                    
+            <div class="grid lg:grid-cols-2 gap-8">
+                <!-- Borrowed Books -->
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                    <h2 class="text-xl font-bold mb-6">Current Borrows</h2>
                     <?php if (empty($borrowed_books)): ?>
-                    <div class="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
-                        <img src="https://illustrations.popsy.co/gray/searching.svg" class="w-48 mx-auto mb-6">
-                        <h3 class="text-xl font-bold text-gray-800">No books borrowed yet</h3>
-                        <p class="text-gray-500 mt-2">Browse the library and start your reading journey!</p>
-                        <a href="../index.php" class="inline-block mt-6 px-6 py-3 bg-red-600 text-white rounded-xl font-bold shadow-lg hover:bg-red-700 transition">Browse Books</a>
-                    </div>
+                        <p class="text-gray-400 italic">No books borrowed currently.</p>
                     <?php else: ?>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <?php foreach($borrowed_books as $book): ?>
-                        <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                            <div class="flex justify-between items-start mb-4">
-                                <span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold">Active</span>
-                                <span class="text-xs text-gray-400">Due: <?php echo date('M d, Y', strtotime($book['due_date'])); ?></span>
-                            </div>
-                            <h3 class="text-lg font-bold text-gray-900 mb-1"><?php echo htmlspecialchars($book['title']); ?></h3>
-                            <p class="text-gray-600 text-sm mb-4"><?php echo htmlspecialchars($book['author']); ?></p>
-                            <div class="flex items-center justify-between mt-auto">
-                                <div class="text-xs text-gray-500">
-                                    <i class="fas fa-barcode mr-1"></i> <?php echo htmlspecialchars($book['isbn']); ?>
+                        <div class="space-y-4">
+                            <?php foreach($borrowed_books as $book): ?>
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+                                <div>
+                                    <h4 class="font-bold text-gray-900"><?php echo $book['book_title']; ?></h4>
+                                    <p class="text-xs text-red-500 font-bold">Due: <?php echo $book['due_date']; ?></p>
                                 </div>
-                                <button class="text-red-600 font-bold text-sm hover:underline">Request Renewal</button>
+                                <span class="bg-white px-3 py-1 rounded-full text-[10px] font-black border border-gray-100">PENDING</span>
                             </div>
+                            <?php endforeach; ?>
                         </div>
-                        <?php endforeach; ?>
-                    </div>
                     <?php endif; ?>
                 </div>
 
-                <!-- History and Quick Links -->
-                <div class="lg:col-span-4 space-y-8">
-                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                        <h2 class="text-xl font-bold text-gray-800 mb-6 uppercase text-sm tracking-wider">Quick Links</h2>
-                        <div class="space-y-3">
-                            <a href="#" class="flex items-center p-4 rounded-xl border border-gray-100 hover:bg-red-50 hover:border-red-100 transition group">
-                                <span class="w-10 h-10 flex items-center justify-center bg-red-100 text-red-600 rounded-lg mr-4 group-hover:bg-red-600 group-hover:text-white transition">
-                                    <i class="fas fa-search"></i>
-                                </span>
-                                <span class="font-semibold text-gray-700">Search Catalogue</span>
-                            </a>
-                            <a href="#" class="flex items-center p-4 rounded-xl border border-gray-100 hover:bg-blue-50 hover:border-blue-100 transition group">
-                                <span class="w-10 h-10 flex items-center justify-center bg-blue-100 text-blue-600 rounded-lg mr-4 group-hover:bg-blue-600 group-hover:text-white transition">
-                                    <i class="fas fa-user-edit"></i>
-                                </span>
-                                <span class="font-semibold text-gray-700">Update Profile</span>
-                            </a>
+                <!-- Faculty Recommendations -->
+                <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                    <h2 class="text-xl font-bold mb-6">Available for <?php echo $program; ?> S<?php echo $semester; ?></h2>
+                    <div class="grid grid-cols-2 gap-4">
+                        <?php foreach($suggested_books as $sb): ?>
+                        <div class="p-4 border border-gray-100 rounded-2xl hover:border-blue-200 transition-all flex flex-col justify-between">
+                            <i class="fas fa-book text-blue-100 text-3xl mb-4"></i>
+                            <h4 class="text-sm font-bold truncate"><?php echo $sb['book_title']; ?></h4>
+                            <p class="text-[10px] text-gray-400 italic"><?php echo $sb['author']; ?></p>
                         </div>
-                    </div>
-
-                    <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-                        <h2 class="text-xl font-bold text-gray-800 mb-6 uppercase text-sm tracking-wider">Recent Returns</h2>
-                        <div class="space-y-4">
-                            <?php foreach($history as $record): ?>
-                            <div class="flex items-start space-x-3">
-                                <div class="mt-1">
-                                    <i class="fas fa-check-circle text-green-500"></i>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-bold text-gray-800"><?php echo htmlspecialchars($record['title']); ?></p>
-                                    <p class="text-xs text-gray-500">Returned on <?php echo date('M d, Y', strtotime($record['return_date'])); ?></p>
-                                </div>
-                            </div>
-                            <?php endforeach; ?>
-                            <?php if(empty($history)): ?>
-                            <p class="text-sm text-gray-400 text-center py-4">No return history yet.</p>
-                            <?php endif; ?>
-                        </div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <?php include '../includes/footer.php'; ?>
+    </main>
 </body>
 </html>

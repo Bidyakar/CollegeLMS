@@ -5,20 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KCMIT Library - Knowledge Center for Modern Information Technology</title>
     <!-- Tailwind CSS -->
-    <link href="assets/style.css" rel="stylesheet">
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
-    
-    <style>
-        body {
-            font-family: 'Open Sans', sans-serif;
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'uneza-red': '#DC2626',
+                        'uneza-dark': '#1F2937',
+                    }
+                }
+            }
         }
-        h1, h2, h3 {
-            font-family: 'Merriweather', serif;
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@300;400;700;900&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style type="text/tailwindcss">
+        @layer base {
+            body { @apply bg-gray-50; font-family: 'Open Sans', sans-serif; }
+            h1, h2, h3 { font-family: 'Merriweather', serif; font-weight: 700; }
         }
     </style>
 </head>
@@ -115,11 +120,11 @@
             <h2 class="text-4xl font-bold text-white mb-6">Ready to Begin Your Research Journey?</h2>
             <p class="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">Take the first step towards knowledge discovery. Get your library card today and become part of our vibrant learning community.</p>
             <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="#" class="inline-block bg-red-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-red-700 transition-colors duration-200 text-lg">
-                    Get Library Card
+                <a href="/lms/auth/student-login.php" class="inline-block bg-red-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-red-700 transition-colors duration-200 text-lg">
+                    Student Login
                 </a>
-                <a href="#" class="inline-block bg-white text-gray-900 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200 text-lg">
-                    Visit Us
+                <a href="/lms/auth/staff-login.php" class="inline-block bg-white text-gray-900 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200 text-lg">
+                    Staff Portal
                 </a>
             </div>
         </div>

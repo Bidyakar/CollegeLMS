@@ -1,21 +1,15 @@
--- KCMIT Library Management System Database Export
--- Generated for phpMyAdmin
+
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
 
---
--- Database: `library_db`
---
+
 CREATE DATABASE IF NOT EXISTS `library_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE `library_db`;
 
--- --------------------------------------------------------
 
---
--- Table structure for table `users`
---
+
 
 CREATE TABLE IF NOT EXISTS `users` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -29,19 +23,13 @@ CREATE TABLE IF NOT EXISTS `users` (
   UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Dumping data for table `users`
---
+
 
 INSERT INTO `users` (`id`, `name`, `email`, `password`, `student_id`, `role`) VALUES
 (1, 'Student User', 'student@example.com', '$2y$10$8W3Y6s7Y9/GvS9Z5jP2cOu3l2F0z1m8j7W5Y6s7Y9/GvS9Z5jP2cO', 'STD001', 'student'),
 (2, 'Admin User', 'admin@example.com', '$2y$10$8W3Y6s7Y9/GvS9Z5jP2cOu3l2F0z1m8j7W5Y6s7Y9/GvS9Z5jP2cO', 'ADM001', 'admin');
 
--- --------------------------------------------------------
 
---
--- Table structure for table `books`
---
 
 CREATE TABLE IF NOT EXISTS `books` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -56,9 +44,7 @@ CREATE TABLE IF NOT EXISTS `books` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
---
--- Dumping data for table `books`
---
+
 
 INSERT INTO `books` (`id`, `title`, `author`, `isbn`, `course`, `semester`, `available_copies`, `total_copies`) VALUES
 (1, 'Digital Logic', 'Mio Morris', '978-0132145321', 'BIM', 1, 5, 5),
@@ -67,11 +53,7 @@ INSERT INTO `books` (`id`, `title`, `author`, `isbn`, `course`, `semester`, `ava
 (4, 'Computer Fundamentals', 'Pradeep K. Sinha', '978-8176567527', 'BCA', 1, 10, 10),
 (5, 'Principles of Management', 'P.C. Tripathi', '978-0070146467', 'BBA', 1, 7, 7);
 
--- --------------------------------------------------------
 
---
--- Table structure for table `issued_books`
---
 
 CREATE TABLE IF NOT EXISTS `issued_books` (
   `id` int(11) NOT NULL AUTO_INCREMENT,

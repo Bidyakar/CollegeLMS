@@ -82,3 +82,7 @@ try {
     echo "Error: " . $e->getMessage();
 }
 ?>
+
+<!-- Sample Credentials:
+Admin: admin@example.com / password123
+Student: student@example.com / password123 -->

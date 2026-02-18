@@ -63,15 +63,20 @@ $is_logged_in = isset($_SESSION['user_id']);
             <!-- Right Side Actions -->
             <div class="hidden lg:flex items-center space-x-4">
                 <?php if ($is_logged_in): ?>
-                    <a href="/lms/<?php echo ($user_role === 'admin' ? 'admin/dashboard.php' : 'student/dashboard.php'); ?>" class="text-sm font-semibold text-gray-700 hover:text-red-600">
-                        Dashboard
+                    <?php 
+                        $dash_link = '/lms/student/dashboard.php';
+                        if ($user_role === 'admin') $dash_link = '/lms/admin/dashboard.php';
+                        if ($user_role === 'faculty') $dash_link = '/lms/faculty/dashboard.php';
+                    ?>
+                    <a href="<?php echo $dash_link; ?>" class="text-sm font-semibold text-gray-700 hover:text-red-600">
+                        <i class="fas fa-th-large mr-1"></i> Dashboard
                     </a>
                     <a href="/lms/auth/logout.php" class="bg-gray-800 text-white px-4 py-2 rounded hover:bg-gray-900 transition-colors duration-200 text-sm font-medium">
                         Logout
                     </a>
                 <?php else: ?>
-                    <a href="/lms/auth/login.php" class="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700 transition-colors duration-200 text-sm font-medium">
-                        Staff Login
+                    <a href="/lms/auth/login.php" class="bg-red-600 text-white px-8 py-2.5 rounded-full hover:bg-red-700 transition-all duration-300 text-sm font-bold shadow-lg shadow-red-100 flex items-center">
+                        <i class="fas fa-sign-in-alt mr-2"></i> Login
                     </a>
                 <?php endif; ?>
             </div>
@@ -89,10 +94,17 @@ $is_logged_in = isset($_SESSION['user_id']);
             <a href="/lms/index.php" class="block py-2 text-gray-900 hover:text-red-600 font-medium">Home</a>
             <a href="#" class="block py-2 text-gray-700 hover:text-red-600 font-medium">Academics</a>
             <?php if ($is_logged_in): ?>
-                <a href="/lms/<?php echo ($user_role === 'admin' ? 'admin/dashboard.php' : 'student/dashboard.php'); ?>" class="block py-2 text-gray-700 hover:text-red-600 font-medium">Dashboard</a>
+                <?php 
+                    $dash_link = '/lms/student/dashboard.php';
+                    if ($user_role === 'admin') $dash_link = '/lms/admin/dashboard.php';
+                    if ($user_role === 'faculty') $dash_link = '/lms/faculty/dashboard.php';
+                ?>
+                <a href="<?php echo $dash_link; ?>" class="block py-2 text-gray-700 hover:text-red-600 font-medium">Dashboard</a>
                 <a href="/lms/auth/logout.php" class="block py-2 text-red-600 font-bold">Logout</a>
             <?php else: ?>
-                <a href="/lms/auth/login.php" class="block py-2 bg-red-600 text-white px-4 rounded text-center">Staff Login</a>
+                <a href="/lms/auth/login.php" class="block py-3 bg-red-600 text-white px-4 rounded-xl text-center font-bold shadow-lg">
+                    <i class="fas fa-sign-in-alt mr-2"></i> Login to Portal
+                </a>
             <?php endif; ?>
         </div>
     </div>
