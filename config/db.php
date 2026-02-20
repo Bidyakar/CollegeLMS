@@ -1,6 +1,6 @@
 <?php
 // Flexible Database Configuration for Local vs Production
-if ($_SERVER['REMOTE_ADDR'] == '127.0.0.1' || $_SERVER['REMOTE_ADDR'] == '::1') {
+if (php_sapi_name() === 'cli' || $_SERVER['REMOTE_ADDR'] == '127.0.0.1' || $_SERVER['REMOTE_ADDR'] == '::1') {
     // LOCAL SETTINGS (XAMPP)
     $host = 'localhost';
     $dbname = 'if0_41176961_lms'; 

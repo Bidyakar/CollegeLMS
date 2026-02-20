@@ -42,6 +42,11 @@ try {
     $stmt->execute([$view_semester]);
     $semester_books = $stmt->fetchAll();
 
+    // 5. Fetch Pending Requests
+    $stmt = $pdo->prepare("SELECT book_id FROM book_requests WHERE user_id = ? AND status = 'pending'");
+    $stmt->execute([$student_id]);
+    $my_requests = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
 } catch (PDOException $e) { $error = $e->getMessage(); }
 ?>
 <!DOCTYPE html>
@@ -226,7 +231,11 @@ try {
                     <?php foreach($semester_books as $book): ?>
                     <div class="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 hover:shadow-xl hover:shadow-blue-900/5 transition-all group">
                         <div class="h-40 bg-gray-50 rounded-2xl mb-4 flex items-center justify-center relative overflow-hidden">
-                            <i class="fas fa-book text-gray-200 text-6xl group-hover:scale-110 transition-transform"></i>
+                            <?php if(!empty($book['book_image'])): ?>
+                                <img src="../<?php echo htmlspecialchars($book['book_image']); ?>" alt="Cover" class="w-full h-full object-cover group-hover:scale-110 transition-transform">
+                            <?php else: ?>
+                                <i class="fas fa-book text-gray-200 text-6xl group-hover:scale-110 transition-transform"></i>
+                            <?php endif; ?>
                             <div class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-black shadow-sm">
                                 <?php echo $book['status']; ?>
                             </div>
@@ -235,7 +244,15 @@ try {
                         <p class="text-[10px] text-gray-400 font-bold italic mb-4"><?php echo $book['author']; ?></p>
                         <div class="flex items-center justify-between pt-4 border-t border-gray-50">
                             <span class="text-[10px] font-black text-blue-600"><?php echo $book['book_copies']; ?> Copies Left</span>
-                            <button class="text-blue-600 hover:text-blue-800"><i class="fas fa-plus-circle"></i></button>
+                            <?php if(in_array($book['book_id'], $my_requests)): ?>
+                                <button class="text-green-500 cursor-default" title="Request Pending">
+                                    <i class="fas fa-check-circle text-xl"></i>
+                                </button>
+                            <?php else: ?>
+                                <button onclick="requestBook(this, <?php echo $book['book_id']; ?>)" class="text-blue-600 hover:text-blue-800 transition-colors" title="Request Book">
+                                    <i class="fas fa-plus-circle text-xl"></i>
+                                </button>
+                            <?php endif; ?>
                         </div>
                     </div>
                     <?php endforeach; ?>
@@ -244,5 +261,34 @@ try {
         </div>
 
     </main>
+
+    <script>
+        function requestBook(btn, bookId) {
+            if(!confirm('Do you want to request this book?')) return;
+            
+            fetch('request_book.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'book_id=' + bookId
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    // Change icon to tick
+                    btn.className = 'text-green-500 cursor-default transition-colors';
+                    btn.innerHTML = '<i class="fas fa-check-circle text-xl"></i>';
+                    btn.onclick = null; // Remove click handler
+                    btn.title = 'Request Pending';
+                    alert('Success: ' + data.message);
+                } else {
+                    alert('Notice: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('An error occurred. Please try again.');
+            });
+        }
+    </script>
 </body>
 </html>

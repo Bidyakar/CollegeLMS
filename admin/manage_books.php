@@ -24,16 +24,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $semester = $_POST['semester'] ?: null; // Handle optional semester
     $date_added = date('Y-m-d H:i:s');
 
+    // Handle Image Upload
+    $book_image = null;
+    
+    // Fetch existing image if updating
+    if ($book_id) {
+        $stmt_img = $pdo->prepare("SELECT book_image FROM book WHERE book_id = ?");
+        $stmt_img->execute([$book_id]);
+        $book_image = $stmt_img->fetchColumn();
+    }
+
+    if (isset($_FILES['book_image']) && $_FILES['book_image']['error'] === UPLOAD_ERR_OK) {
+        $upload_dir = '../uploads/books/';
+        if (!is_dir($upload_dir)) mkdir($upload_dir, 0777, true);
+        
+        $ext = pathinfo($_FILES['book_image']['name'], PATHINFO_EXTENSION);
+        $filename = uniqid('book_') . '.' . $ext;
+        $target = $upload_dir . $filename;
+        
+        if (move_uploaded_file($_FILES['book_image']['tmp_name'], $target)) {
+            $book_image = 'uploads/books/' . $filename;
+        }
+    }
+
     try {
         if ($book_id) {
             // Update
-            $stmt = $pdo->prepare("UPDATE book SET book_title=?, author=?, isbn=?, book_copies=?, book_pub=?, publisher_name=?, copyright_year=?, status=?, semester=? WHERE book_id=?");
-            $stmt->execute([$book_title, $author, $isbn, $book_copies, $book_pub, $publisher_name, $copyright_year, $status, $semester, $book_id]);
+            $stmt = $pdo->prepare("UPDATE book SET book_title=?, author=?, isbn=?, book_copies=?, book_pub=?, publisher_name=?, copyright_year=?, status=?, semester=?, book_image=? WHERE book_id=?");
+            $stmt->execute([$book_title, $author, $isbn, $book_copies, $book_pub, $publisher_name, $copyright_year, $status, $semester, $book_image, $book_id]);
             $message = "Book updated successfully!";
         } else {
             // Insert
-            $stmt = $pdo->prepare("INSERT INTO book (book_title, author, isbn, book_copies, book_pub, publisher_name, copyright_year, status, semester, date_added) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$book_title, $author, $isbn, $book_copies, $book_pub, $publisher_name, $copyright_year, $status, $semester, $date_added]);
+            $stmt = $pdo->prepare("INSERT INTO book (book_title, author, isbn, book_copies, book_pub, publisher_name, copyright_year, status, semester, book_image, date_added) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$book_title, $author, $isbn, $book_copies, $book_pub, $publisher_name, $copyright_year, $status, $semester, $book_image, $date_added]);
             $message = "Book added successfully!";
         }
     } catch (PDOException $e) {
@@ -97,7 +120,7 @@ if (isset($_GET['edit'])) {
                 <!-- Form -->
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <h2 class="text-xl font-bold mb-6"><?php echo $edit_book ? 'Edit' : 'Add New'; ?> Book</h2>
-                    <form action="manage_books.php" method="POST" class="space-y-4">
+                    <form action="manage_books.php" method="POST" enctype="multipart/form-data" class="space-y-4">
                         <input type="hidden" name="book_id" value="<?php echo $edit_book['book_id'] ?? ''; ?>">
                         <div><label class="text-xs font-bold uppercase text-gray-500">Title</label>
                         <input type="text" name="book_title" required value="<?php echo htmlspecialchars($edit_book['book_title'] ?? ''); ?>" class="w-full p-2 border rounded"></div>
@@ -129,6 +152,13 @@ if (isset($_GET['edit'])) {
                         <input type="text" name="publisher_name" value="<?php echo htmlspecialchars($edit_book['publisher_name'] ?? ''); ?>" class="w-full p-2 border rounded"></div>
                         <div><label class="text-xs font-bold uppercase text-gray-500">Copyright Year</label>
                         <input type="number" name="copyright_year" value="<?php echo $edit_book['copyright_year'] ?? date('Y'); ?>" class="w-full p-2 border rounded"></div>
+                        
+                        <div><label class="text-xs font-bold uppercase text-gray-500">Cover Image</label>
+                        <input type="file" name="book_image" accept="image/*" class="w-full p-2 border rounded">
+                        <?php if(!empty($edit_book['book_image'])): ?>
+                            <div class="mt-2"><img src="../<?php echo htmlspecialchars($edit_book['book_image']); ?>" class="h-20 rounded shadow-sm"></div>
+                        <?php endif; ?>
+                        </div>
                         <button type="submit" class="w-full py-3 bg-red-600 text-white rounded font-bold hover:bg-red-700 shadow-lg shadow-red-200"><?php echo $edit_book ? 'Update' : 'Add'; ?> Book to Collection</button>
                     </form>
                 </div>
@@ -152,6 +182,9 @@ if (isset($_GET['edit'])) {
                                             <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-100 italic">SEM <?php echo $book['semester']; ?></span>
                                         <?php else: ?>
                                             <span class="bg-slate-50 text-slate-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-slate-100">General</span>
+                                        <?php endif; ?>
+                                        <?php if(!empty($book['book_image'])): ?>
+                                            <div class="mt-2"><img src="../<?php echo htmlspecialchars($book['book_image']); ?>" class="h-10 w-10 object-cover rounded shadow-sm"></div>
                                         <?php endif; ?>
                                     </td>
                                     <td class="p-6 font-black text-slate-600"><?php echo $book['book_copies']; ?></td>

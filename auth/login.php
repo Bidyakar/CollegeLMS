@@ -1,9 +1,5 @@
 <?php
-session_start();
-if (isset($_SESSION['user_id'])) {
-    $redirect = ($_SESSION['role'] === 'admin') ? 'admin/dashboard.php' : 'student/dashboard.php';
-    header("Location: $redirect"); exit;
-}
+require_once '../includes/access_control.php';
 $hour = date('G');
 $greeting = $hour >= 5 && $hour < 12 ? "Good Morning" : ($hour >= 12 && $hour < 17 ? "Good Afternoon" : ($hour >= 17 && $hour < 22 ? "Good Evening" : "Welcome"));
 ?>

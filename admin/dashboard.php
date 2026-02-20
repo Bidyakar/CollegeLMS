@@ -20,6 +20,12 @@ try {
     // Currently Borrowed Books (Active)
     $issued_books = $pdo->query("SELECT COUNT(*) FROM borrowdetails WHERE borrow_status = 'pending'")->fetchColumn();
     
+    // Total Blogs
+    $total_blogs = $pdo->query("SELECT COUNT(*) FROM blogs")->fetchColumn() ?: 0;
+
+    // Total Resources
+    $total_resources = $pdo->query("SELECT COUNT(*) FROM resources")->fetchColumn() ?: 0;
+
     // Recent Transactions
     $stmt = $pdo->query("SELECT bd.*, s.firstname, s.lastname, b.book_title, br.date_borrow 
                          FROM borrowdetails bd
@@ -72,14 +78,38 @@ try {
         </header>
 
         <div class="p-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-10">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 stat-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-red-50 text-red-600 rounded-xl"><i class="fas fa-rss text-xl"></i></div>
+                        <span class="text-[10px] font-bold text-gray-400 uppercase">Blogs</span>
+                    </div>
+                    <h3 class="text-2xl font-black text-slate-800"><?php echo number_format($total_blogs); ?></h3>
+                    <div class="flex justify-between items-center mt-2">
+                        <p class="text-[10px] text-gray-500">Articles</p>
+                        <a href="manage_blogs.php" class="text-[10px] font-bold text-red-600 hover:underline">Write &rarr;</a>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 stat-card">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><i class="fas fa-file-alt text-xl"></i></div>
+                        <span class="text-[10px] font-bold text-gray-400 uppercase">Resources</span>
+                    </div>
+                    <h3 class="text-2xl font-black text-slate-800"><?php echo number_format($total_resources); ?></h3>
+                    <div class="flex justify-between items-center mt-2">
+                        <p class="text-[10px] text-gray-500">Academic Files</p>
+                        <a href="manage_resources.php" class="text-[10px] font-bold text-indigo-600 hover:underline">Add &rarr;</a>
+                    </div>
+                </div>
+
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 stat-card">
                     <div class="flex items-center justify-between mb-4">
                         <div class="p-3 bg-blue-50 text-blue-600 rounded-xl"><i class="fas fa-book text-xl"></i></div>
                         <span class="text-[10px] font-bold text-gray-400 uppercase">Books</span>
                     </div>
                     <h3 class="text-2xl font-black text-slate-800"><?php echo number_format($total_books); ?></h3>
-                    <p class="text-xs text-gray-500 mt-1">Total physical stock</p>
+                    <p class="text-xs text-gray-500 mt-1">Physical stock</p>
                 </div>
 
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 stat-card">
@@ -88,16 +118,16 @@ try {
                         <span class="text-[10px] font-bold text-gray-400 uppercase">Members</span>
                     </div>
                     <h3 class="text-2xl font-black text-slate-800"><?php echo number_format($total_users); ?></h3>
-                    <p class="text-xs text-gray-500 mt-1">Active student accounts</p>
+                    <p class="text-xs text-gray-500 mt-1">Profiles</p>
                 </div>
 
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 stat-card">
                     <div class="flex items-center justify-between mb-4">
-                        <div class="p-3 bg-red-50 text-red-600 rounded-xl"><i class="fas fa-exchange-alt text-xl"></i></div>
+                        <div class="p-3 bg-slate-50 text-slate-600 rounded-xl"><i class="fas fa-exchange-alt text-xl"></i></div>
                         <span class="text-[10px] font-bold text-gray-400 uppercase">Borrowed</span>
                     </div>
                     <h3 class="text-2xl font-black text-slate-800"><?php echo number_format($issued_books); ?></h3>
-                    <p class="text-xs text-gray-500 mt-1">Books currently issued</p>
+                    <p class="text-xs text-gray-500 mt-1">Active issues</p>
                 </div>
 
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-red-200 bg-red-50/10 stat-card">
@@ -107,10 +137,29 @@ try {
                     </div>
                     <h3 class="text-2xl font-black text-slate-800"><?php echo $pending_stud_count; ?></h3>
                     <div class="flex justify-between items-center mt-2">
-                        <p class="text-[10px] text-gray-500">Account requests</p>
+                        <p class="text-[10px] text-gray-500">Waitlist</p>
                         <a href="manage_students.php" class="text-[10px] font-bold text-red-600 hover:underline">Verify &rarr;</a>
                     </div>
                 </div>
+
+                <?php 
+                    $pending_req_count = $pdo->query("SELECT COUNT(*) FROM book_requests WHERE status = 'pending'")->fetchColumn(); 
+                ?>
+                
+                <?php if($pending_req_count > 0): ?>
+                <div class="bg-indigo-600 p-6 rounded-2xl shadow-sm border border-indigo-700 stat-card text-white">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="p-3 bg-indigo-500 rounded-xl"><i class="fas fa-inbox text-xl"></i></div>
+                        <span class="text-[10px] font-bold text-indigo-300 uppercase animate-pulse">Action Required</span>
+                    </div>
+                    <h3 class="text-2xl font-black"><?php echo $pending_req_count; ?></h3>
+                    <div class="flex justify-between items-center mt-2">
+                        <p class="text-[10px] text-indigo-200">New Book Requests</p>
+                        <a href="manage_requests.php" class="text-[10px] font-bold text-white hover:underline">Review &rarr;</a>
+                    </div>
+                </div>
+                <?php endif; ?>
+
             </div>
 
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">

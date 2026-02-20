@@ -17,7 +17,20 @@ try {
     } else {
         $stmt = $pdo->query("SELECT * FROM book ORDER BY book_title ASC LIMIT 20");
     }
+
     $books = $stmt->fetchAll();
+
+    // Fetch user bookmarks
+    // Fetch user bookmarks
+    $stmt = $pdo->prepare("SELECT book_id FROM bookmarks WHERE user_id = ?");
+    $stmt->execute([$_SESSION['user_id']]);
+    $my_bookmarks = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+    // Fetch user requests
+    $stmt = $pdo->prepare("SELECT book_id FROM book_requests WHERE user_id = ? AND status = 'pending'");
+    $stmt->execute([$_SESSION['user_id']]);
+    $my_requests = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
 } catch (PDOException $e) { $error = $e->getMessage(); }
 ?>
 <!DOCTYPE html>
@@ -58,9 +71,13 @@ try {
 
         <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             <?php foreach($books as $book): ?>
-                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 hover:shadow-xl hover:shadow-blue-900/5 transition-all flex flex-col">
-                    <div class="h-32 bg-gray-50 rounded-2xl mb-4 flex items-center justify-center italic text-gray-300 text-5xl">
-                        <i class="fas fa-book"></i>
+                <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 hover:shadow-xl hover:shadow-blue-900/5 transition-all flex flex-col group">
+                    <div class="h-32 bg-gray-50 rounded-2xl mb-4 flex items-center justify-center italic text-gray-300 text-5xl overflow-hidden relative">
+                        <?php if(!empty($book['book_image'])): ?>
+                            <img src="../<?php echo htmlspecialchars($book['book_image']); ?>" class="w-full h-full object-cover group-hover:scale-110 transition-transform">
+                        <?php else: ?>
+                            <i class="fas fa-book"></i>
+                        <?php endif; ?>
                     </div>
                     <div class="flex-1">
                         <h4 class="font-black text-gray-900 text-sm leading-snug mb-1"><?php echo $book['book_title']; ?></h4>
@@ -70,11 +87,83 @@ try {
                         <span class="text-[10px] font-black <?php echo $book['book_copies'] > 0 ? 'text-blue-600' : 'text-red-500'; ?> italic">
                             <?php echo $book['book_copies'] > 0 ? $book['book_copies'].' IN STOCK' : 'OUT OF STOCK'; ?>
                         </span>
-                        <button class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs hover:scale-110 transition-transform"><i class="fas fa-bookmark"></i></button>
+                        
+                        <div class="flex space-x-2">
+                             <?php if(in_array($book['book_id'], $my_requests)): ?>
+                                <button class="text-green-500 cursor-default" title="Request Pending">
+                                    <i class="fas fa-check-circle text-lg"></i>
+                                </button>
+                            <?php else: ?>
+                                <button onclick="requestBook(this, <?php echo $book['book_id']; ?>)" class="text-blue-600 hover:text-blue-800 transition-colors" title="Request Book">
+                                    <i class="fas fa-plus-circle text-lg"></i>
+                                </button>
+                            <?php endif; ?>
+
+                            <?php $is_bookmarked = in_array($book['book_id'], $my_bookmarks); ?>
+                            <button onclick="toggleBookmark(this, <?php echo $book['book_id']; ?>)" 
+                                    class="<?php echo $is_bookmarked ? 'bg-yellow-500 text-white' : 'bg-blue-600 text-white'; ?> w-8 h-8 rounded-full flex items-center justify-center text-xs hover:scale-110 transition-transform shadow-lg">
+                                <i class="<?php echo $is_bookmarked ? 'fas' : 'far'; ?> fa-bookmark"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
     </main>
+
+    <script>
+        function requestBook(btn, bookId) {
+            if(!confirm('Do you want to request this book?')) return;
+            
+            fetch('request_book.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'book_id=' + bookId
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    // Change icon to tick
+                    btn.className = 'text-green-500 cursor-default transition-colors';
+                    btn.innerHTML = '<i class="fas fa-check-circle text-lg"></i>';
+                    btn.onclick = null; // Remove click handler
+                    btn.title = 'Request Pending';
+                    alert('Success: ' + data.message);
+                } else {
+                    alert('Notice: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('An error occurred. Please try again.');
+            });
+        }
+
+        function toggleBookmark(btn, bookId) {
+            fetch('toggle_bookmark.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'book_id=' + bookId
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    const icon = btn.querySelector('i');
+                    if(data.action === 'added') {
+                        btn.className = 'bg-yellow-500 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs hover:scale-110 transition-transform shadow-lg';
+                        icon.classList.remove('far');
+                        icon.classList.add('fas');
+                    } else {
+                        btn.className = 'bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-xs hover:scale-110 transition-transform shadow-lg';
+                        icon.classList.remove('fas');
+                        icon.classList.add('far');
+                    }
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(err => console.error(err));
+        }
+    </script>
 </body>
 </html>

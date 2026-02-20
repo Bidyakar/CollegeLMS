@@ -77,7 +77,7 @@ try {
 
     // 6. Ensure 'resources' table (Syllabus, Notes, etc.)
     $pdo->exec("CREATE TABLE IF NOT EXISTS `resources` (
-        `resource_id` int(11) NOT NULL AUTO_INCREMENT,
+        `id` int(11) NOT NULL AUTO_INCREMENT,
         `title` varchar(255) NOT NULL,
         `description` text,
         `faculty` enum('BIM', 'BCA', 'BBA', 'BITM') NOT NULL,
@@ -86,9 +86,21 @@ try {
         `file_path` varchar(255) DEFAULT NULL,
         `link_url` varchar(255) DEFAULT NULL,
         `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (`resource_id`)
+        PRIMARY KEY (`id`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
     echo "- 'resources' table checked.<br>";
+
+    // 7. Ensure 'blogs' table
+    $pdo->exec("CREATE TABLE IF NOT EXISTS `blogs` (
+        `blog_id` int(11) NOT NULL AUTO_INCREMENT,
+        `title` varchar(255) NOT NULL,
+        `content` longtext NOT NULL,
+        `author` varchar(100) DEFAULT 'Admin',
+        `image_path` varchar(255) DEFAULT NULL,
+        `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`blog_id`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;");
+    echo "- 'blogs' table checked.<br>";
 
     // Add default admin if not exists
     $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE username = 'admin'");

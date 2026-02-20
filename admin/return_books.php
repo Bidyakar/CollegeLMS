@@ -113,7 +113,7 @@ try {
                             <tr class="hover:bg-gray-50 transition-colors group">
                                 <td class="px-8 py-6">
                                     <p class="font-black text-slate-800"><?php echo htmlspecialchars($issued['firstname'] . ' ' . $issued['lastname']); ?></p>
-                                    <p class="text-[10px] text-gray-400 font-bold">ID: #<?php echo $issued['student_id']; ?></p>
+                                    <p class="text-[10px] text-gray-400 font-bold">ID: #<?php echo $issued['stud_custom_id']; ?></p>
                                 </td>
                                 <td class="px-8 py-6">
                                     <p class="text-sm font-bold text-slate-700"><?php echo htmlspecialchars($issued['book_title']); ?></p>

@@ -35,6 +35,24 @@ $active_page = $active_page ?? '';
                 <span>Manage Resources</span>
             </a>
 
+            <a href="manage_blogs.php" class="flex items-center space-x-3 p-3 rounded-xl transition-all group <?php echo $active_page == 'blogs' ? 'bg-red-600 text-white shadow-lg shadow-red-900/40 font-bold' : 'text-slate-400 hover:bg-slate-800 hover:text-white'; ?>">
+                <i class="fas fa-rss w-5 <?php echo $active_page == 'blogs' ? 'text-white' : 'group-hover:text-red-500'; ?> transition-colors"></i>
+                <span>Manage Blogs</span>
+            </a>
+
+            <a href="manage_requests.php" class="flex items-center space-x-3 p-3 rounded-xl transition-all group <?php echo $active_page == 'requests' ? 'bg-red-600 text-white shadow-lg shadow-red-900/40 font-bold' : 'text-slate-400 hover:bg-slate-800 hover:text-white'; ?>">
+                <i class="fas fa-inbox w-5 <?php echo $active_page == 'requests' ? 'text-white' : 'group-hover:text-red-500'; ?> transition-colors"></i>
+                <span class="flex-1">Book Requests</span>
+                <?php
+                     // Check for pending requests using existing $pdo connection
+                     if(isset($pdo)) {
+                         $stmt = $pdo->query("SELECT COUNT(*) FROM book_requests WHERE status = 'pending'");
+                         $pending = $stmt ? $stmt->fetchColumn() : 0;
+                         if($pending > 0) echo '<span class="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">'.$pending.'</span>';
+                     }
+                ?>
+            </a>
+
             <div class="pt-4 pb-2">
                 <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-3">Transactions</span>
             </div>
@@ -116,6 +134,10 @@ $active_page = $active_page ?? '';
             <a href="manage_students.php" class="flex items-center space-x-3 p-3 rounded-xl transition-all <?php echo $active_page == 'students' ? 'bg-red-600 text-white shadow-lg shadow-red-900/40 font-bold' : 'text-slate-400 hover:bg-slate-800 hover:text-white'; ?>">
                 <i class="fas fa-users-graduate w-5"></i>
                 <span>Manage Students</span>
+            </a>
+            <a href="manage_blogs.php" class="flex items-center space-x-3 p-3 rounded-xl transition-all <?php echo $active_page == 'blogs' ? 'bg-red-600 text-white shadow-lg shadow-red-900/40 font-bold' : 'text-slate-400 hover:bg-slate-800 hover:text-white'; ?>">
+                <i class="fas fa-rss w-5"></i>
+                <span>Manage Blogs</span>
             </a>
             <div class="pt-4 pb-2"><span class="text-[10px] font-black text-slate-500 uppercase tracking-widest px-3">Transactions</span></div>
             <a href="issue_books.php" class="flex items-center space-x-3 p-3 rounded-xl transition-all <?php echo $active_page == 'issue' ? 'bg-red-600 text-white shadow-lg shadow-red-900/40 font-bold' : 'text-slate-400 hover:bg-slate-800 hover:text-white'; ?>">

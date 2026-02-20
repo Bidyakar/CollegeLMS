@@ -1,6 +1,7 @@
 <?php
 // faculty/bba.php
 session_start();
+require_once '../includes/access_control.php';
 require_once '../config/db.php';
 
 $faculty_name = "BBA";

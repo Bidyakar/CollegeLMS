@@ -1,3 +1,4 @@
+<?php require_once 'includes/access_control.php'; ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -110,6 +111,59 @@
                     <h3 class="text-2xl font-bold text-gray-900 mb-4">Welcoming Spaces</h3>
                     <p class="text-gray-600 leading-relaxed">Experience comfortable study areas within a diverse and collaborative community of learners, scholars, and knowledge seekers.</p>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Latest Blogs Section -->
+    <section class="py-24 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-16 px-4">
+                <div class="max-w-xl">
+                    <h2 class="text-4xl font-black text-slate-800 mb-4 tracking-tighter italic uppercase">Library <span class="text-red-600">Insights</span></h2>
+                    <p class="text-gray-500 font-semibold leading-relaxed italic">Stay updated with the latest academic stories, research tips, and institutional updates from the KCMIT Blog.</p>
+                </div>
+                <a href="blog.php" class="mt-6 md:mt-0 px-8 py-4 bg-white border-2 border-slate-100 text-slate-800 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all shadow-sm">Explore All Articles</a>
+            </div>
+
+            <?php 
+            require_once 'config/db.php';
+            $latest_blogs = $pdo->query("SELECT * FROM blogs ORDER BY created_at DESC LIMIT 3")->fetchAll();
+            ?>
+
+            <div class="grid md:grid-cols-3 gap-10">
+                <?php foreach($latest_blogs as $blog): ?>
+                <article class="bg-white rounded-[2.5rem] overflow-hidden shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 border border-gray-100 group">
+                    <div class="h-56 overflow-hidden relative">
+                        <?php if($blog['image_path']): ?>
+                            <img src="<?php echo $blog['image_path']; ?>" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700">
+                        <?php else: ?>
+                            <div class="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300">
+                                <i class="fas fa-image text-3xl"></i>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="p-8">
+                        <span class="text-[9px] font-black uppercase text-red-600 tracking-[0.2em] mb-4 block italic"><?php echo date('M d, Y', strtotime($blog['created_at'])); ?></span>
+                        <h3 class="text-xl font-black text-slate-800 mb-4 line-clamp-2 leading-tight italic group-hover:text-red-600 transition-colors">
+                            <?php echo htmlspecialchars($blog['title']); ?>
+                        </h3>
+                        <p class="text-sm text-gray-500 font-semibold leading-relaxed line-clamp-2 mb-6">
+                            <?php echo strip_tags($blog['content']); ?>
+                        </p>
+                        <a href="blog.php" class="text-[10px] font-black uppercase tracking-widest text-slate-800 hover:text-red-600 transition-colors flex items-center">
+                            Read Story <i class="fas fa-arrow-right ml-2 text-xs"></i>
+                        </a>
+                    </div>
+                </article>
+                <?php endforeach; ?>
+                
+                <?php if(empty($latest_blogs)): ?>
+                <div class="col-span-3 py-16 text-center bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
+                    <i class="fas fa-rss text-4xl text-gray-200 mb-4"></i>
+                    <p class="text-gray-400 font-bold italic">No stories published yet. Our faculty is preparing insights for you!</p>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </section>
